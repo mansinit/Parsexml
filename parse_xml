@@ -1,0 +1,65 @@
+import xml.etree.ElementTree as parser
+import xml.etree.ElementTree as ET
+import xmltodict
+from collections import OrderedDict
+
+tree = ET.parse('request1.xml')
+root = tree.getroot()
+
+def _strip_namespaces(elem, current_ns=None):
+    if elem.tag.startswith('{') and '}' in elem.tag:
+        ns, elem.tag = elem.tag[1:].split('}', 1)
+        if ns != current_ns:
+            elem.set('xmlns', ns)
+            current_ns = ns
+    for child in elem:
+        _strip_namespaces(child, current_ns)
+
+
+dict={}
+def element_text_info(root, original_root):
+    _strip_namespaces(original_root)
+    parent_map = {c:p for p in original_root.iter() for c in p}
+
+    for child in root:
+        if child.text is not None and len(child.text.strip()) > 0:
+            c = child
+            arr = []
+            while c != original_root:
+                arr.append(c.tag)
+                c = parent_map[c]
+            arr.append(original_root.tag)
+
+            tag1=('/'.join(arr[::-1]))
+            value=(child.text)
+            dict[tag1]=value
+        elif child.get('name') is not None and child.get('value') is not None :
+            c = child
+            arr = []
+            while c != original_root:
+                arr.append(c.tag)
+                c = parent_map[c]
+            arr.append(original_root.tag)
+            str1="[@name='"+child.get('name')+"']"
+            arr.insert(0,str1)
+
+            str2=('/'.join(arr[:0:-1]))
+
+            str2=str2+(''.join(arr[0::-1]))
+
+            value=(child.get('value'))
+            dict[str2]=value
+        element_text_info(child, original_root)
+        
+xml_data = ET.tostring(root, encoding='utf8', method='xml')
+root = parser.fromstring(xml_data)
+element_text_info(root, root)
+print(dict)
+
+def findpathvalue(xpath,value):
+    if value==dict[xpath]:
+        return True
+    else:
+        return False
+
+print(findpathvalue("Envelope/Body/provisionUserResponse/ack/status","OK"))
